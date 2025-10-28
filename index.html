@@ -1,3 +1,9 @@
+8<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>WICP — Roblox Scripts</title>
 <!doctype html>
 <html lang="en">
 <head>
@@ -33,22 +39,17 @@ footer{max-width:980px;margin:36px auto;color:var(--muted);padding:0 18px;text-a
     <div style="font-size:13px;color:#9fb0cc">
       Upload, share, and explore safe Roblox scripts. Verified by moderators, commented by the community.
     </div>
-    <div style="font-size:13px;color:#9fb0cc; margin-top:4px;">
-      All scripts and comments are global. Verified scripts are marked with a ✔. Moderators manage content to keep it safe.
-    </div>
   </div>
   <div>
     <button class="btn" onclick="enterModeratorKey()">Moderator Login</button>
+    <span id="modStatus" style="margin-left:10px;color:#0fff7b;font-weight:bold;display:none;">Moderator Mode</span>
   </div>
 </header>
-
 <main class="wrap">
   <div style="margin-bottom:16px">
     <input id="q" type="search" placeholder="Search scripts (title, tags)..." oninput="filter()" />
   </div>
-
   <section class="grid" id="list"></section>
-
   <section id="add" style="margin-top:28px">
     <h3 style="margin:0 0 8px 0">Add a Script</h3>
     <input id="title" type="text" placeholder="Script title" />
@@ -57,72 +58,102 @@ footer{max-width:980px;margin:36px auto;color:var(--muted);padding:0 18px;text-a
     <button class="btn" onclick="addScript()">Upload Script</button>
   </section>
 </main>
-
 <footer>
   <div style="margin-top:12px;color:var(--muted)">No NSFW content allowed.</div>
 </footer>
-
 <script>
-let isModerator = false;
 const MOD_KEY = "WICP-Moderator-7f9X2bLq";
+const USERNAME = "wicpz";
+const REPO = "wicpz.github.io";
+const BRANCH = "main";
+const SCRIPT_FILE = "scripts.json";
+const RAW_URL = `https://raw.githubusercontent.com/${USERNAME}/${REPO}/${BRANCH}/${SCRIPT_FILE}`;
+const API_URL = `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${SCRIPT_FILE}`;
+let isModerator = false;
 let scripts = [];
-const GIST_URL = "https://gist.githubusercontent.com/YOUR_USERNAME/YOUR_GIST_ID/raw/scripts.json"; // replace with your raw gist URL
-const SERVER_URL = "https://YOUR_SERVER_URL/submit"; // replace with your backend server URL
 
+// Load scripts from GitHub Pages
 async function fetchScripts() {
   try {
-    const res = await fetch(GIST_URL);
+    const res = await fetch(RAW_URL);
+    if (!res.ok) throw new Error("Failed to load scripts");
     scripts = await res.json();
     renderScripts();
   } catch(e) {
     console.error("Failed to load scripts", e);
+    scripts = [];
+    renderScripts();
   }
 }
 
+// Moderator login
 function enterModeratorKey() {
   const key = prompt("Enter moderator key:").trim();
   if(key === MOD_KEY){
     isModerator = true;
+    document.getElementById('modStatus').style.display = 'inline';
     alert("Moderator mode enabled!");
     renderScripts();
   } else {
     alert("Wrong key!");
+    isModerator = false;
+    document.getElementById('modStatus').style.display = 'none';
+    renderScripts();
   }
 }
 
+// Anyone can upload scripts
 async function addScript() {
   const title = document.getElementById('title').value.trim();
   const tags = document.getElementById('tags').value.trim();
   const content = document.getElementById('content').value.trim();
   if(!title || !content) { alert("Title and content required."); return; }
-
-  // Optimistic UI
+  const token = prompt("Enter your GitHub personal access token (with repo permissions):").trim();
+  if(!token) { alert("Token required."); return; }
   scripts.unshift({title, tags, content, verified:false, comments:[]});
-  renderScripts();
-
-  try {
-    const resp = await fetch(SERVER_URL, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ script: { title, tags, content } })
-    });
-    const data = await resp.json();
-    if(!data.ok){
-      alert('Upload failed: ' + (data.error || 'unknown'));
-    } else {
-      alert('Uploaded! Visible globally once backend updates.');
-      fetchScripts();
-    }
-  } catch(e){
-    console.error(e);
-    alert('Could not reach server. Script saved locally only.');
-  }
-
   document.getElementById('title').value = "";
   document.getElementById('tags').value = "";
   document.getElementById('content').value = "";
+  renderScripts();
+  await saveScripts(token);
+  await fetchScripts();
 }
 
+// Save scripts to GitHub Pages repo
+async function saveScripts(token) {
+  try {
+    // Get the current file SHA (needed for GitHub API updates)
+    const res = await fetch(API_URL, {
+      headers: {"Authorization": `token ${token}`}
+    });
+    const data = await res.json();
+    const sha = data.sha;
+    // Prepare content
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(scripts, null, 2))));
+    // Update file via GitHub API
+    const updateRes = await fetch(API_URL, {
+      method: "PUT",
+      headers: {
+        "Authorization": `token ${token}`,
+        "Accept": "application/vnd.github.v3+json"
+      },
+      body: JSON.stringify({
+        message: "Update scripts.json via website upload",
+        content: content,
+        sha: sha,
+        branch: BRANCH
+      })
+    });
+    if(!updateRes.ok){
+      throw new Error(`Failed to save: ${updateRes.status}`);
+    }
+    alert("Scripts uploaded globally!");
+  } catch(e) {
+    alert("Failed to upload scripts: " + e.message);
+  }
+}
+
+// Render scripts
 function renderScripts() {
   const list = document.getElementById('list');
   list.innerHTML = '';
@@ -134,23 +165,40 @@ function renderScripts() {
       <h2 class="title">${script.title} ${script.verified?'<span class="verified">✔ Verified</span>':''}</h2>
       <pre><code>${script.content}</code></pre>
     `;
-
+    // MODERATOR ONLY: verify/unverify, delete
+    const btnDiv = document.createElement('div');
+    btnDiv.className = 'card-buttons';
     if(isModerator){
-      const btnDiv = document.createElement('div');
-      btnDiv.className = 'card-buttons';
       const verifyBtn = document.createElement('button');
       verifyBtn.className = 'btn';
       verifyBtn.innerText = script.verified ? "Unverify" : "Verify";
-      verifyBtn.onclick = () => { scripts[index].verified = !scripts[index].verified; renderScripts(); };
+      verifyBtn.onclick = async () => {
+        scripts[index].verified = !scripts[index].verified;
+        renderScripts();
+        const token = prompt("Enter your GitHub token to save verification change:").trim();
+        if(!token){ alert("Token required."); return; }
+        await saveScripts(token);
+        await fetchScripts();
+      };
       const delBtn = document.createElement('button');
       delBtn.className = 'btn';
       delBtn.innerText = "Delete";
-      delBtn.onclick = () => { if(confirm("Delete this script?")){ scripts.splice(index,1); renderScripts(); } };
+      delBtn.onclick = async () => {
+        if(confirm("Delete this script?")){
+          scripts.splice(index,1);
+          renderScripts();
+          const token = prompt("Enter your GitHub token to save deletion:").trim();
+          if(!token){ alert("Token required."); return; }
+          await saveScripts(token);
+          await fetchScripts();
+        }
+      };
       btnDiv.appendChild(verifyBtn);
       btnDiv.appendChild(delBtn);
-      card.appendChild(btnDiv);
     }
+    card.appendChild(btnDiv);
 
+    // Comments (anyone can comment)
     const commentDiv = document.createElement('div');
     commentDiv.className = 'comment-section';
     const commentList = document.createElement('div');
@@ -163,10 +211,12 @@ function renderScripts() {
     const commentInput = document.createElement('input');
     commentInput.type = 'text';
     commentInput.placeholder = 'Add a comment...';
-    commentInput.onkeydown = (e) => {
+    commentInput.onkeydown = async (e) => {
       if(e.key==='Enter' && commentInput.value.trim()!==''){
         script.comments.push(commentInput.value.trim());
         renderScripts();
+        const token = prompt("Enter your GitHub token to save comment:").trim();
+        if(token){ await saveScripts(token); await fetchScripts(); }
       }
     };
     commentDiv.appendChild(commentList);
@@ -177,15 +227,17 @@ function renderScripts() {
   });
 }
 
+// Filter
 function filter() {
   const q = document.getElementById('q').value.toLowerCase();
-  document.querySelectorAll('#list .card').forEach((card,i)=>{
+  document.querySelectorAll('#list .card').forEach((card, i) => {
     const title = card.querySelector('.title').innerText.toLowerCase();
     const tags = card.querySelector('.meta span').innerText.toLowerCase();
-    card.style.display = (title.includes(q) || tags.includes(q))? 'block':'none';
+    card.style.display = (title.includes(q) || tags.includes(q)) ? 'block' : 'none';
   });
 }
 
+// Initial load
 fetchScripts();
 </script>
 </body>
