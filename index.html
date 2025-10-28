@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>WICP — Roblox Scripts</title>
+<style>
+:root{--accent:#00f6ff;--bg:#0a192f;--card:#081429;--muted:#94a3b8}
+*{box-sizing:border-box}
+body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;margin:0;background:linear-gradient(180deg,#071024 0%, #071627 100%);color:#e6eef6;}
+header{padding:28px 20px;display:flex;align-items:center;justify-content:space-between}
+h1{margin:0;font-size:20px;letter-spacing:-0.02em;color:var(--accent)}
+.btn{background:var(--accent);color:black;padding:8px 12px;border-radius:10px;text-decoration:none;font-weight:600;cursor:pointer}
+.wrap{max-width:980px;margin:20px auto;padding:0 18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));border:1px solid rgba(255,255,255,0.03);padding:14px;border-radius:12px;position:relative}
+.meta{font-size:12px;color:var(--muted);margin-bottom:8px}
+.title{font-weight:700;margin:0 0 8px 0}
+pre{background:#020617;padding:12px;border-radius:8px;overflow:auto;font-size:13px;line-height:1.45}
+input[type=search], input[type=text], textarea{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit;margin-bottom:8px}
+footer{max-width:980px;margin:36px auto;color:var(--muted);padding:0 18px;text-align:center}
+.card-buttons{display:flex;gap:6px;margin-top:6px}
+.comment-section{margin-top:12px;border-top:1px solid rgba(255,255,255,0.05);padding-top:8px}
+.comment{background:rgba(255,255,255,0.02);padding:6px 8px;border-radius:6px;margin-bottom:4px;font-size:13px;}
+.verified{color:#0fff7b;font-weight:bold;font-size:14px;}
+@media (max-width:460px){header{flex-direction:column;align-items:flex-start} .btn{margin-top:12px}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>WICP — Roblox Scripts</h1>
+    <div style="font-size:13px;color:#9fb0cc">
+      Upload, share, and explore safe Roblox scripts. Verified by moderators, commented by the community.
+    </div>
+  </div>
+  <div>
+    <button class="btn" onclick="enterModeratorKey()">Moderator Login</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div style="margin-bottom:16px">
+    <input id="q" type="search" placeholder="Search scripts (title, tags)..." oninput="filter()" />
+  </div>
+
+  <section class="grid" id="list"></section>
+
+  <section id="add" style="margin-top:28px">
+    <h3 style="margin:0 0 8px 0">Add a Script</h3>
+    <input id="title" type="text" placeholder="Script title" />
+    <input id="tags" type="text" placeholder="Tags (comma separated)" />
+    <textarea id="content" rows="6" placeholder="Paste your script here"></textarea>
+    <button class="btn" onclick="addScript()">Upload Script</button>
+  </section>
+</main>
+
+<footer>
+  <div style="margin-top:12px;color:var(--muted)">No NSFW content allowed.</div>
+</footer>
+
+<script>
+let isModerator = false;
+const MOD_KEY = "WICP-Moderator-7f9X2bLq";
+let scripts = [];
+const GIST_URL = "https://gist.githubusercontent.com/YOUR_USERNAME/YOUR_GIST_ID/raw/scripts.json"; // Replace with your raw gist URL
+
+// Load scripts from GitHub Gist
+async function fetchScripts() {
+  try {
+    const res = await fetch(GIST_URL);
+    scripts = await res.json();
+    renderScripts();
+  } catch(e) {
+    console.error("Failed to load scripts", e);
+  }
+}
+
+// Moderator login
+function enterModeratorKey() {
+  const key = prompt("Enter moderator key:").trim();
+  if(key === MOD_KEY){
+    isModerator = true;
+    alert("Moderator mode enabled!");
+    renderScripts();
+  } else {
+    alert("Wrong key!");
+  }
+}
+
+// Add script (updates local array; to persist globally, you’d update the gist manually or via GitHub token)
+function addScript() {
+  const title = document.getElementById('title').value.trim();
+  const tags = document.getElementById('tags').value.trim();
+  const content = document.getElementById('content').value.trim();
+  if(!title || !content) { alert("Title and content required."); return; }
+  scripts.unshift({title, tags, content, verified:false, comments:[]});
+  document.getElementById('title').value = "";
+  document.getElementById('tags').value = "";
+  document.getElementById('content').value = "";
+  renderScripts();
+}
+
+// Render scripts
+function renderScripts() {
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+  scripts.forEach((script, index) => {
+    const card = document.createElement('article');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="meta"><span>${script.tags}</span></div>
+      <h2 class="title">${script.title} ${script.verified?'<span class="verified">✔ Verified</span>':''}</h2>
+      <pre><code>${script.content}</code></pre>
+    `;
+
+    if(isModerator){
+      const btnDiv = document.createElement('div');
+      btnDiv.className = 'card-buttons';
+      const verifyBtn = document.createElement('button');
+      verifyBtn.className = 'btn';
+      verifyBtn.innerText = script.verified ? "Unverify" : "Verify";
+      verifyBtn.onclick = () => { scripts[index].verified = !scripts[index].verified; renderScripts(); };
+      const delBtn = document.createElement('button');
+      delBtn.className = 'btn';
+      delBtn.innerText = "Delete";
+      delBtn.onclick = () => { if(confirm("Delete this script?")){ scripts.splice(index,1); renderScripts(); } };
+      btnDiv.appendChild(verifyBtn);
+      btnDiv.appendChild(delBtn);
+      card.appendChild(btnDiv);
+    }
+
+    // Comments
+    const commentDiv = document.createElement('div');
+    commentDiv.className = 'comment-section';
+    const commentList = document.createElement('div');
+    script.comments.forEach(c => {
+      const cDiv = document.createElement('div');
+      cDiv.className = 'comment';
+      cDiv.innerText = c;
+      commentList.appendChild(cDiv);
+    });
+    const commentInput = document.createElement('input');
+    commentInput.type = 'text';
+    commentInput.placeholder = 'Add a comment...';
+    commentInput.onkeydown = (e) => {
+      if(e.key==='Enter' && commentInput.value.trim()!==''){
+        script.comments.push(commentInput.value.trim());
+        renderScripts();
+      }
+    };
+    commentDiv.appendChild(commentList);
+    commentDiv.appendChild(commentInput);
+    card.appendChild(commentDiv);
+
+    list.appendChild(card);
+  });
+}
+
+// Filter
+function filter() {
+  const q = document.getElementById('q').value.toLowerCase();
+  document.querySelectorAll('#list .card').forEach((card, i) => {
+    const title = card.querySelector('.title').innerText.toLowerCase();
+    const tags = card.querySelector('.meta span').innerText.toLowerCase();
+    card.style.display = (title.includes(q) || tags.includes(q)) ? 'block' : 'none';
+  });
+}
+
+// Initial load
+fetchScripts();
+</script>
+</body>
+</html>
