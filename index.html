@@ -33,6 +33,9 @@ footer{max-width:980px;margin:36px auto;color:var(--muted);padding:0 18px;text-a
     <div style="font-size:13px;color:#9fb0cc">
       Upload, share, and explore safe Roblox scripts. Verified by moderators, commented by the community.
     </div>
+    <div style="font-size:13px;color:#9fb0cc; margin-top:4px;">
+      All scripts and comments are global. Verified scripts are marked with a ✔. Moderators manage content to keep it safe.
+    </div>
   </div>
   <div>
     <button class="btn" onclick="enterModeratorKey()">Moderator Login</button>
@@ -63,9 +66,9 @@ footer{max-width:980px;margin:36px auto;color:var(--muted);padding:0 18px;text-a
 let isModerator = false;
 const MOD_KEY = "WICP-Moderator-7f9X2bLq";
 let scripts = [];
-const GIST_URL = "https://gist.githubusercontent.com/YOUR_USERNAME/YOUR_GIST_ID/raw/scripts.json"; // Replace with your raw gist URL
+const GIST_URL = "https://gist.githubusercontent.com/YOUR_USERNAME/YOUR_GIST_ID/raw/scripts.json"; // replace with your raw gist URL
+const SERVER_URL = "https://YOUR_SERVER_URL/submit"; // replace with your backend server URL
 
-// Load scripts from GitHub Gist
 async function fetchScripts() {
   try {
     const res = await fetch(GIST_URL);
@@ -76,7 +79,6 @@ async function fetchScripts() {
   }
 }
 
-// Moderator login
 function enterModeratorKey() {
   const key = prompt("Enter moderator key:").trim();
   if(key === MOD_KEY){
@@ -88,20 +90,39 @@ function enterModeratorKey() {
   }
 }
 
-// Add script (updates local array; to persist globally, you’d update the gist manually or via GitHub token)
-function addScript() {
+async function addScript() {
   const title = document.getElementById('title').value.trim();
   const tags = document.getElementById('tags').value.trim();
   const content = document.getElementById('content').value.trim();
   if(!title || !content) { alert("Title and content required."); return; }
+
+  // Optimistic UI
   scripts.unshift({title, tags, content, verified:false, comments:[]});
+  renderScripts();
+
+  try {
+    const resp = await fetch(SERVER_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ script: { title, tags, content } })
+    });
+    const data = await resp.json();
+    if(!data.ok){
+      alert('Upload failed: ' + (data.error || 'unknown'));
+    } else {
+      alert('Uploaded! Visible globally once backend updates.');
+      fetchScripts();
+    }
+  } catch(e){
+    console.error(e);
+    alert('Could not reach server. Script saved locally only.');
+  }
+
   document.getElementById('title').value = "";
   document.getElementById('tags').value = "";
   document.getElementById('content').value = "";
-  renderScripts();
 }
 
-// Render scripts
 function renderScripts() {
   const list = document.getElementById('list');
   list.innerHTML = '';
@@ -130,7 +151,6 @@ function renderScripts() {
       card.appendChild(btnDiv);
     }
 
-    // Comments
     const commentDiv = document.createElement('div');
     commentDiv.className = 'comment-section';
     const commentList = document.createElement('div');
@@ -157,17 +177,15 @@ function renderScripts() {
   });
 }
 
-// Filter
 function filter() {
   const q = document.getElementById('q').value.toLowerCase();
-  document.querySelectorAll('#list .card').forEach((card, i) => {
+  document.querySelectorAll('#list .card').forEach((card,i)=>{
     const title = card.querySelector('.title').innerText.toLowerCase();
     const tags = card.querySelector('.meta span').innerText.toLowerCase();
-    card.style.display = (title.includes(q) || tags.includes(q)) ? 'block' : 'none';
+    card.style.display = (title.includes(q) || tags.includes(q))? 'block':'none';
   });
 }
 
-// Initial load
 fetchScripts();
 </script>
 </body>
