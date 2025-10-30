@@ -1,9 +1,3 @@
-8<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>WICP — Roblox Scripts</title>
 <!doctype html>
 <html lang="en">
 <head>
@@ -26,219 +20,177 @@ pre{background:#020617;padding:12px;border-radius:8px;overflow:auto;font-size:13
 input[type=search], input[type=text], textarea{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit;margin-bottom:8px}
 footer{max-width:980px;margin:36px auto;color:var(--muted);padding:0 18px;text-align:center}
 .card-buttons{display:flex;gap:6px;margin-top:6px}
-.comment-section{margin-top:12px;border-top:1px solid rgba(255,255,255,0.05);padding-top:8px}
-.comment{background:rgba(255,255,255,0.02);padding:6px 8px;border-radius:6px;margin-bottom:4px;font-size:13px;}
 .verified{color:#0fff7b;font-weight:bold;font-size:14px;}
+.empty-slot{color:var(--muted);opacity:0.7;text-align:center;padding:30px 0;}
+.pager{display:flex;justify-content:center;gap:10px;margin:18px 0;}
+.pager button{background:var(--accent);color:black;padding:7px 14px;border-radius:8px;font-weight:600;border:none;cursor:pointer;}
+.pager span{color:var(--muted);}
 @media (max-width:460px){header{flex-direction:column;align-items:flex-start} .btn{margin-top:12px}}
 </style>
 </head>
 <body>
 <header>
-  <div>
-    <h1>WICP — Roblox Scripts</h1>
-    <div style="font-size:13px;color:#9fb0cc">
-      Upload, share, and explore safe Roblox scripts. Verified by moderators, commented by the community.
-    </div>
-  </div>
-  <div>
-    <button class="btn" onclick="enterModeratorKey()">Moderator Login</button>
-    <span id="modStatus" style="margin-left:10px;color:#0fff7b;font-weight:bold;display:none;">Moderator Mode</span>
-  </div>
+<div>
+<h1>WICP — Roblox Scripts</h1>
+<div style="font-size:13px;color:#9fb0cc">
+Upload, share, and explore safe Roblox scripts. Verified by moderators.
+</div>
+</div>
+<div>
+<button class="btn" onclick="enterModeratorKey()">Moderator Login</button>
+<span id="modStatus" style="margin-left:10px;color:#0fff7b;font-weight:bold;display:none;">Moderator Mode</span>
+</div>
 </header>
 <main class="wrap">
-  <div style="margin-bottom:16px">
-    <input id="q" type="search" placeholder="Search scripts (title, tags)..." oninput="filter()" />
-  </div>
-  <section class="grid" id="list"></section>
-  <section id="add" style="margin-top:28px">
-    <h3 style="margin:0 0 8px 0">Add a Script</h3>
-    <input id="title" type="text" placeholder="Script title" />
-    <input id="tags" type="text" placeholder="Tags (comma separated)" />
-    <textarea id="content" rows="6" placeholder="Paste your script here"></textarea>
-    <button class="btn" onclick="addScript()">Upload Script</button>
-  </section>
+<div style="margin-bottom:16px">
+<input id="q" type="search" placeholder="Search scripts (title, tags)..." oninput="filter()" />
+</div>
+<section class="grid" id="list"></section>
+<div class="pager" id="pager"></div>
 </main>
 <footer>
-  <div style="margin-top:12px;color:var(--muted)">No NSFW content allowed.</div>
+<div style="margin-top:12px;color:var(--muted)">No NSFW content allowed.</div>
 </footer>
 <script>
 const MOD_KEY = "WICP-Moderator-7f9X2bLq";
-const USERNAME = "wicpz";
-const REPO = "wicpz.github.io";
-const BRANCH = "main";
-const SCRIPT_FILE = "scripts.json";
-const RAW_URL = `https://raw.githubusercontent.com/${USERNAME}/${REPO}/${BRANCH}/${SCRIPT_FILE}`;
-const API_URL = `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${SCRIPT_FILE}`;
 let isModerator = false;
-let scripts = [];
+const PAGE_SIZE = 30;
+let currentPage = 0;
+let filteredIndexes = null;
 
-// Load scripts from GitHub Pages
-async function fetchScripts() {
-  try {
-    const res = await fetch(RAW_URL);
-    if (!res.ok) throw new Error("Failed to load scripts");
-    scripts = await res.json();
-    renderScripts();
-  } catch(e) {
-    console.error("Failed to load scripts", e);
-    scripts = [];
-    renderScripts();
-  }
+// === SCRIPTS DATA ===
+let scripts = [
+  {title:"Infinite Yield", tags:"admin, utility", content:`loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()`, verified:true},
+  {title:"Simple ESP", tags:"esp, vision", content:`for i,v in pairs(game.Players:GetPlayers()) do print(v.Name) end`, verified:false},
+  {title:"Dex Explorer", tags:"explorer, gui", content:`loadstring(game:HttpGet("https://raw.githubusercontent.com/peyton2465/Dex/master/out.lua"))()`, verified:true},
+  {title:"CMD-X", tags:"admin, utility", content:`loadstring(game:HttpGet("https://raw.githubusercontent.com/CMD-X/CMD-X/master/Source"))()`, verified:true},
+  {title:"OwlHub", tags:"hub, universal", content:`loadstring(game:HttpGet("https://raw.githubusercontent.com/CriShoux/OwlHub/master/OwlHub.txt"))()`, verified:true},
+  {title:"DarkHub", tags:"hub, universal", content:`loadstring(game:HttpGet("https://raw.githubusercontent.com/DarkHubDev/DarkHub/master/Main"))()`, verified:false},
+  {title:"Unnamed ESP", tags:"esp, vision", content:`loadstring(game:HttpGet("https://pastebin.com/raw/ZzQfK4bX"))()`, verified:false},
+  {title:"Fates Admin", tags:"admin, utility", content:`loadstring(game:HttpGet("https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua"))()`, verified:true},
+  {title:"Remote Spy", tags:"debug, spy", content:`loadstring(game:HttpGet("https://raw.githubusercontent.com/exxtremestuffs/SimpleSpySource/master/SimpleSpy.lua"))()`, verified:false},
+  {title:"DomainX", tags:"admin, utility", content:`loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/DomainX/main/source"))()`, verified:false},
+  {title:"Lemon Hub", tags:"Steal a brainrot", content:`loadstring(game:HttpGet("https://api.luarmor.net/files/v3/loaders/c4281c3937ebd537cb9e860182e41141.lua"))()`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Astral Hub", tags:"Blox fruits", content:`loadstring(game:HttpGet("https://raw.githubusercontent.com/Overgustx2/Main/refs/heads/main/BloxFruits_25.html"))()`, verified:true},
+  {title:"Speed Hub X", tags:"Fish It, Plants Vs Brainrots, 99 nights, Muscle Legends, Pets Go, The Strongest Battlegrounds", content:`loadstring(game:HttpGet("https://raw.githubusercontent.com/AhmadV99/Speed-Hub-X/main/Speed%20Hub%20X.lua", true))()`, verified:true},
+  {title:"H4x Scripts", tags:"Universal", content:`loadstring(game:HttpGet("https://raw.githubusercontent.com/H4xScripts/Loader/refs/heads/main/loader.lua", true))()`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example` , verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true},
+  {title:"Example", tags:"Example", content:`Example`, verified:true}
+];
+
+// Add 135 empty slots
+for(let i=0; i<135; i++){
+  scripts.push({title:"", tags:"", content:"", verified:false});
 }
 
 // Moderator login
 function enterModeratorKey() {
   const key = prompt("Enter moderator key:").trim();
-  if(key === MOD_KEY){
-    isModerator = true;
-    document.getElementById('modStatus').style.display = 'inline';
+  if(key===MOD_KEY){
+    isModerator=true;
+    document.getElementById('modStatus').style.display='inline';
     alert("Moderator mode enabled!");
     renderScripts();
   } else {
     alert("Wrong key!");
-    isModerator = false;
-    document.getElementById('modStatus').style.display = 'none';
+    isModerator=false;
+    document.getElementById('modStatus').style.display='none';
     renderScripts();
   }
 }
 
-// Anyone can upload scripts
-async function addScript() {
-  const title = document.getElementById('title').value.trim();
-  const tags = document.getElementById('tags').value.trim();
-  const content = document.getElementById('content').value.trim();
-  if(!title || !content) { alert("Title and content required."); return; }
-  const token = prompt("Enter your GitHub personal access token (with repo permissions):").trim();
-  if(!token) { alert("Token required."); return; }
-  scripts.unshift({title, tags, content, verified:false, comments:[]});
-  document.getElementById('title').value = "";
-  document.getElementById('tags').value = "";
-  document.getElementById('content').value = "";
-  renderScripts();
-  await saveScripts(token);
-  await fetchScripts();
-}
-
-// Save scripts to GitHub Pages repo
-async function saveScripts(token) {
-  try {
-    // Get the current file SHA (needed for GitHub API updates)
-    const res = await fetch(API_URL, {
-      headers: {"Authorization": `token ${token}`}
+function filter() {
+  const q=document.getElementById('q').value.trim().toLowerCase();
+  if(q===""){filteredIndexes=null;}
+  else{
+    filteredIndexes=[];
+    scripts.forEach((script,idx)=>{
+      const title=(script.title||"").toLowerCase();
+      const tags=(script.tags||"").toLowerCase();
+      if(title.includes(q)||tags.includes(q)) filteredIndexes.push(idx);
     });
-    const data = await res.json();
-    const sha = data.sha;
-    // Prepare content
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(scripts, null, 2))));
-    // Update file via GitHub API
-    const updateRes = await fetch(API_URL, {
-      method: "PUT",
-      headers: {
-        "Authorization": `token ${token}`,
-        "Accept": "application/vnd.github.v3+json"
-      },
-      body: JSON.stringify({
-        message: "Update scripts.json via website upload",
-        content: content,
-        sha: sha,
-        branch: BRANCH
-      })
-    });
-    if(!updateRes.ok){
-      throw new Error(`Failed to save: ${updateRes.status}`);
-    }
-    alert("Scripts uploaded globally!");
-  } catch(e) {
-    alert("Failed to upload scripts: " + e.message);
   }
+  currentPage=0; renderScripts();
 }
 
-// Render scripts
 function renderScripts() {
-  const list = document.getElementById('list');
-  list.innerHTML = '';
-  scripts.forEach((script, index) => {
-    const card = document.createElement('article');
-    card.className = 'card';
-    card.innerHTML = `
+  const list=document.getElementById('list'); list.innerHTML='';
+  let indexes;
+  if(filteredIndexes){indexes=filteredIndexes.slice(currentPage*PAGE_SIZE,(currentPage+1)*PAGE_SIZE);}
+  else{indexes=[]; for(let i=currentPage*PAGE_SIZE;i<(currentPage+1)*PAGE_SIZE;i++){if(i<scripts.length) indexes.push(i);}}
+  indexes.forEach(index=>{
+    const script=scripts[index]; const card=document.createElement('article'); card.className='card';
+    if(!script.title && !script.content){
+      card.innerHTML=`<div class="empty-slot">Empty Slot #${index+1}</div>`;
+      if(isModerator){
+        const addBtn=document.createElement('button'); addBtn.className='btn'; addBtn.innerText="Add Script";
+        addBtn.onclick=()=>{const title=prompt("Script title:")||""; const tags=prompt("Tags (comma separated):")||""; const content=prompt("Paste script here:")||""; if(title && content){scripts[index]={title,tags,content,verified:false}; renderScripts();} else{alert("Title and content required!");}};
+        card.appendChild(addBtn);
+      }
+    } else {
+      card.innerHTML=`
       <div class="meta"><span>${script.tags}</span></div>
       <h2 class="title">${script.title} ${script.verified?'<span class="verified">✔ Verified</span>':''}</h2>
       <pre><code>${script.content}</code></pre>
-    `;
-    // MODERATOR ONLY: verify/unverify, delete
-    const btnDiv = document.createElement('div');
-    btnDiv.className = 'card-buttons';
-    if(isModerator){
-      const verifyBtn = document.createElement('button');
-      verifyBtn.className = 'btn';
-      verifyBtn.innerText = script.verified ? "Unverify" : "Verify";
-      verifyBtn.onclick = async () => {
-        scripts[index].verified = !scripts[index].verified;
-        renderScripts();
-        const token = prompt("Enter your GitHub token to save verification change:").trim();
-        if(!token){ alert("Token required."); return; }
-        await saveScripts(token);
-        await fetchScripts();
-      };
-      const delBtn = document.createElement('button');
-      delBtn.className = 'btn';
-      delBtn.innerText = "Delete";
-      delBtn.onclick = async () => {
-        if(confirm("Delete this script?")){
-          scripts.splice(index,1);
-          renderScripts();
-          const token = prompt("Enter your GitHub token to save deletion:").trim();
-          if(!token){ alert("Token required."); return; }
-          await saveScripts(token);
-          await fetchScripts();
-        }
-      };
-      btnDiv.appendChild(verifyBtn);
-      btnDiv.appendChild(delBtn);
-    }
-    card.appendChild(btnDiv);
-
-    // Comments (anyone can comment)
-    const commentDiv = document.createElement('div');
-    commentDiv.className = 'comment-section';
-    const commentList = document.createElement('div');
-    script.comments.forEach(c => {
-      const cDiv = document.createElement('div');
-      cDiv.className = 'comment';
-      cDiv.innerText = c;
-      commentList.appendChild(cDiv);
-    });
-    const commentInput = document.createElement('input');
-    commentInput.type = 'text';
-    commentInput.placeholder = 'Add a comment...';
-    commentInput.onkeydown = async (e) => {
-      if(e.key==='Enter' && commentInput.value.trim()!==''){
-        script.comments.push(commentInput.value.trim());
-        renderScripts();
-        const token = prompt("Enter your GitHub token to save comment:").trim();
-        if(token){ await saveScripts(token); await fetchScripts(); }
+      `;
+      if(isModerator){
+        const btnDiv=document.createElement('div'); btnDiv.className='card-buttons';
+        const verifyBtn=document.createElement('button'); verifyBtn.className='btn'; verifyBtn.innerText=script.verified?"Unverify":"Verify";
+        verifyBtn.onclick=()=>{scripts[index].verified=!scripts[index].verified; renderScripts();}
+        const editBtn=document.createElement('button'); editBtn.className='btn'; editBtn.innerText="Edit";
+        editBtn.onclick=()=>{const title=prompt("Edit title:",script.title)||script.title; const tags=prompt("Edit tags:",script.tags)||script.tags; const content=prompt("Edit script:",script.content)||script.content; scripts[index]={title,tags,content,verified:script.verified}; renderScripts();}
+        const delBtn=document.createElement('button'); delBtn.className='btn'; delBtn.innerText="Delete";
+        delBtn.onclick=()=>{if(confirm("Delete this script?")){scripts[index]={title:"",tags:"",content:"",verified:false}; renderScripts();}}
+        btnDiv.appendChild(verifyBtn); btnDiv.appendChild(editBtn); btnDiv.appendChild(delBtn); card.appendChild(btnDiv);
       }
-    };
-    commentDiv.appendChild(commentList);
-    commentDiv.appendChild(commentInput);
-    card.appendChild(commentDiv);
-
+    }
     list.appendChild(card);
   });
+  const pager=document.getElementById('pager'); let totalSlots=filteredIndexes?filteredIndexes.length:scripts.length; let totalPages=Math.ceil(totalSlots/PAGE_SIZE);
+  pager.innerHTML=`<button ${currentPage===0?"disabled":""} onclick="goPage(-1)">Previous</button>
+  <span>Page ${currentPage+1} of ${totalPages} (${totalSlots} slots)</span>
+  <button ${currentPage===totalPages-1?"disabled":""} onclick="goPage(1)">Next</button>`;
 }
 
-// Filter
-function filter() {
-  const q = document.getElementById('q').value.toLowerCase();
-  document.querySelectorAll('#list .card').forEach((card, i) => {
-    const title = card.querySelector('.title').innerText.toLowerCase();
-    const tags = card.querySelector('.meta span').innerText.toLowerCase();
-    card.style.display = (title.includes(q) || tags.includes(q)) ? 'block' : 'none';
-  });
-}
+function goPage(delta){let totalSlots=filteredIndexes?filteredIndexes.length:scripts.length; let totalPages=Math.ceil(totalSlots/PAGE_SIZE); currentPage=Math.max(0,Math.min(currentPage+delta,totalPages-1)); renderScripts();}
 
 // Initial load
-fetchScripts();
+renderScripts();
 </script>
 </body>
 </html>
