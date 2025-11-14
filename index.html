@@ -10,7 +10,8 @@
 body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;margin:0;background:linear-gradient(180deg,#071024 0%, #071627 100%);color:#e6eef6;}
 header{padding:28px 20px;display:flex;align-items:center;justify-content:space-between}
 h1{margin:0;font-size:20px;letter-spacing:-0.02em;color:var(--accent)}
-.btn{background:var(--accent);color:black;padding:8px 12px;border-radius:10px;text-decoration:none;font-weight:600;cursor:pointer}
+.btn{background:var(--accent);color:black;padding:8px 12px;border-radius:10px;text-decoration:none;font-weight:600;cursor:pointer;border:none}
+.small-btn{background:var(--accent);color:black;padding:6px 10px;border-radius:8px;text-decoration:none;font-weight:600;cursor:pointer;border:none;font-size:13px}
 .wrap{max-width:980px;margin:20px auto;padding:0 18px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
 .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));border:1px solid rgba(255,255,255,0.03);padding:14px;border-radius:12px;position:relative}
@@ -19,12 +20,13 @@ h1{margin:0;font-size:20px;letter-spacing:-0.02em;color:var(--accent)}
 pre{background:#020617;padding:12px;border-radius:8px;overflow:auto;font-size:13px;line-height:1.45}
 input[type=search], input[type=text], textarea{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit;margin-bottom:8px}
 footer{max-width:980px;margin:36px auto;color:var(--muted);padding:0 18px;text-align:center}
-.card-buttons{display:flex;gap:6px;margin-top:6px}
+.card-buttons{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
 .verified{color:#0fff7b;font-weight:bold;font-size:14px;}
 .empty-slot{color:var(--muted);opacity:0.7;text-align:center;padding:30px 0;}
 .pager{display:flex;justify-content:center;gap:10px;margin:18px 0;}
 .pager button{background:var(--accent);color:black;padding:7px 14px;border-radius:8px;font-weight:600;border:none;cursor:pointer;}
 .pager span{color:var(--muted);}
+.controls{display:flex;gap:8px;align-items:center}
 @media (max-width:460px){header{flex-direction:column;align-items:flex-start} .btn{margin-top:12px}}
 </style>
 </head>
@@ -36,14 +38,15 @@ footer{max-width:980px;margin:36px auto;color:var(--muted);padding:0 18px;text-a
 Upload, share, and explore safe Roblox scripts. Verified by moderators.
 </div>
 </div>
-<div>
+<div style="display:flex;align-items:center;gap:10px">
 <button class="btn" onclick="enterModeratorKey()">Moderator Login</button>
 <span id="modStatus" style="margin-left:10px;color:#0fff7b;font-weight:bold;display:none;">Moderator Mode</span>
 </div>
 </header>
 <main class="wrap">
-<div style="margin-bottom:16px">
+<div style="margin-bottom:16px;display:flex;gap:8px;align-items:center">
 <input id="q" type="search" placeholder="Search scripts (title, tags)..." oninput="filter()" />
+<button class="small-btn" onclick="copyAllNonExamples()">Copy all non-Example scripts</button>
 </div>
 <section class="grid" id="list"></section>
 <div class="pager" id="pager"></div>
@@ -109,7 +112,6 @@ let scripts = [
   {title:"Example", tags:"Example", content:`Example`, verified:true},
   {title:"Example", tags:"Example", content:`Example`, verified:true},
   {title:"Example", tags:"Example", content:`Example`, verified:true},
-  {title:"Example", tags:"Example", content:`Example`, verified:true},
   {title:"Example", tags:"Example", content:`Example`, verified:true}
 ];
 
@@ -118,9 +120,42 @@ for(let i=0; i<135; i++){
   scripts.push({title:"", tags:"", content:"", verified:false});
 }
 
+// Utility: copy text to clipboard with fallback, and give button feedback
+function copyTextToClipboard(text, feedbackBtn, feedbackMsg="Copied!") {
+  if(!text) { alert("Nothing to copy."); return; }
+  const doFallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+      showTempFeedback(feedbackBtn, feedbackMsg);
+    } catch (e) {
+      alert("Copy failed");
+    }
+    document.body.removeChild(ta);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>showTempFeedback(feedbackBtn, feedbackMsg)).catch(doFallback);
+  } else doFallback();
+}
+
+function showTempFeedback(btn, msg) {
+  if(!btn) return;
+  const orig = btn.innerText;
+  btn.innerText = msg;
+  btn.disabled = true;
+  setTimeout(()=>{btn.innerText = orig; btn.disabled = false;}, 1500);
+}
+
 // Moderator login
 function enterModeratorKey() {
-  const key = prompt("Enter moderator key:").trim();
+  const p = prompt("Enter moderator key:");
+  if(!p) return;
+  const key = p.trim();
   if(key===MOD_KEY){
     isModerator=true;
     document.getElementById('modStatus').style.display='inline';
@@ -154,40 +189,74 @@ function renderScripts() {
   if(filteredIndexes){indexes=filteredIndexes.slice(currentPage*PAGE_SIZE,(currentPage+1)*PAGE_SIZE);}
   else{indexes=[]; for(let i=currentPage*PAGE_SIZE;i<(currentPage+1)*PAGE_SIZE;i++){if(i<scripts.length) indexes.push(i);}}
   indexes.forEach(index=>{
-    const script=scripts[index]; const card=document.createElement('article'); card.className='card';
+    const script=scripts[index];
+    const card=document.createElement('article'); card.className='card';
     if(!script.title && !script.content){
-      card.innerHTML=`<div class="empty-slot">Empty Slot #${index+1}</div>`;
+      const emptyDiv = document.createElement('div');
+      emptyDiv.className='empty-slot';
+      emptyDiv.textContent = `Empty Slot #${index+1}`;
+      card.appendChild(emptyDiv);
       if(isModerator){
         const addBtn=document.createElement('button'); addBtn.className='btn'; addBtn.innerText="Add Script";
         addBtn.onclick=()=>{const title=prompt("Script title:")||""; const tags=prompt("Tags (comma separated):")||""; const content=prompt("Paste script here:")||""; if(title && content){scripts[index]={title,tags,content,verified:false}; renderScripts();} else{alert("Title and content required!");}};
         card.appendChild(addBtn);
       }
     } else {
-      card.innerHTML=`
-      <div class="meta"><span>${script.tags}</span></div>
-      <h2 class="title">${script.title} ${script.verified?'<span class="verified">✔ Verified</span>':''}</h2>
-      <pre><code>${script.content}</code></pre>
-      `;
+      const meta = document.createElement('div'); meta.className='meta'; meta.textContent = script.tags || '';
+      const h2 = document.createElement('h2'); h2.className='title';
+      h2.textContent = script.title || '';
+      if(script.verified){
+        const vs = document.createElement('span'); vs.className='verified'; vs.textContent = ' ✔ Verified';
+        h2.appendChild(vs);
+      }
+      const pre = document.createElement('pre');
+      const code = document.createElement('code');
+      code.textContent = script.content || '';
+      pre.appendChild(code);
+
+      card.appendChild(meta); card.appendChild(h2); card.appendChild(pre);
+
+      const btnDiv=document.createElement('div'); btnDiv.className='card-buttons';
+
+      // Add Copy button for any non-empty script that is NOT an Example (title !== "Example")
+      if((script.title||"").trim().toLowerCase() !== "example" && (script.content||"").trim() !== ""){
+        const copyBtn = document.createElement('button');
+        copyBtn.className='btn';
+        copyBtn.innerText = 'Copy';
+        copyBtn.onclick = ()=> copyTextToClipboard(script.content, copyBtn, "Copied!");
+        btnDiv.appendChild(copyBtn);
+      }
+
       if(isModerator){
-        const btnDiv=document.createElement('div'); btnDiv.className='card-buttons';
         const verifyBtn=document.createElement('button'); verifyBtn.className='btn'; verifyBtn.innerText=script.verified?"Unverify":"Verify";
         verifyBtn.onclick=()=>{scripts[index].verified=!scripts[index].verified; renderScripts();}
         const editBtn=document.createElement('button'); editBtn.className='btn'; editBtn.innerText="Edit";
         editBtn.onclick=()=>{const title=prompt("Edit title:",script.title)||script.title; const tags=prompt("Edit tags:",script.tags)||script.tags; const content=prompt("Edit script:",script.content)||script.content; scripts[index]={title,tags,content,verified:script.verified}; renderScripts();}
         const delBtn=document.createElement('button'); delBtn.className='btn'; delBtn.innerText="Delete";
         delBtn.onclick=()=>{if(confirm("Delete this script?")){scripts[index]={title:"",tags:"",content:"",verified:false}; renderScripts();}}
-        btnDiv.appendChild(verifyBtn); btnDiv.appendChild(editBtn); btnDiv.appendChild(delBtn); card.appendChild(btnDiv);
+        btnDiv.appendChild(verifyBtn); btnDiv.appendChild(editBtn); btnDiv.appendChild(delBtn);
       }
+
+      card.appendChild(btnDiv);
     }
     list.appendChild(card);
   });
-  const pager=document.getElementById('pager'); let totalSlots=filteredIndexes?filteredIndexes.length:scripts.length; let totalPages=Math.ceil(totalSlots/PAGE_SIZE);
+  const pager=document.getElementById('pager'); let totalSlots=filteredIndexes?filteredIndexes.length:scripts.length; let totalPages=Math.ceil(totalSlots/PAGE_SIZE)||1;
   pager.innerHTML=`<button ${currentPage===0?"disabled":""} onclick="goPage(-1)">Previous</button>
   <span>Page ${currentPage+1} of ${totalPages} (${totalSlots} slots)</span>
   <button ${currentPage===totalPages-1?"disabled":""} onclick="goPage(1)">Next</button>`;
 }
 
-function goPage(delta){let totalSlots=filteredIndexes?filteredIndexes.length:scripts.length; let totalPages=Math.ceil(totalSlots/PAGE_SIZE); currentPage=Math.max(0,Math.min(currentPage+delta,totalPages-1)); renderScripts();}
+function goPage(delta){let totalSlots=filteredIndexes?filteredIndexes.length:scripts.length; let totalPages=Math.ceil(totalSlots/PAGE_SIZE)||1; currentPage=Math.max(0,Math.min(currentPage+delta,totalPages-1)); renderScripts();}
+
+// Copy all non-Example scripts to clipboard (joins each script separated by two newlines)
+function copyAllNonExamples(){
+  const toCopy = scripts.filter(s => (s.title||"").trim().toLowerCase() !== "example" && (s.content||"").trim() !== "").map(s => s.content.trim());
+  if(toCopy.length === 0){ alert("No non-Example scripts to copy."); return; }
+  const combined = toCopy.join("\n\n--\n\n");
+  const btn = event && event.currentTarget ? event.currentTarget : null;
+  copyTextToClipboard(combined, btn, `Copied ${toCopy.length} scripts!`);
+}
 
 // Initial load
 renderScripts();
