@@ -1,13 +1,15 @@
-html
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>WICP</title>
-  <link rel="icon" href="favicon.ico">
+
+  <!-- Fixed favicon path -->
+  <link rel="icon" href="main/favicon.ico" type="image/x-icon">
 </head>
 <body>
 </body>
-</html
+</html>
+
 
 
