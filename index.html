@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -84,8 +85,8 @@ footer{margin-top:3rem;padding:2rem 0;text-align:center;border-top:1px solid rgb
         </div>
         <nav class="nav-links" aria-label="Primary" style="margin-left:16px">
           <a class="nav-link" href="#/" data-route="/">Home</a>
-          <a class="nav-link" href="#/add" data-route="/add">Add</a>
-          <a class="nav-link" href="#/dashboard" data-route="/dashboard">Dashboard</a>
+          <a id="navAdd" class="nav-link" href="#/add" data-route="/add" style="display:none">Add</a>
+          <a id="navDash" class="nav-link" href="#/dashboard" data-route="/dashboard" style="display:none">Dashboard</a>
         </nav>
       </div>
       <div class="nav-actions">
@@ -103,17 +104,12 @@ footer{margin-top:3rem;padding:2rem 0;text-align:center;border-top:1px solid rgb
   <div id="modalContainer" style="display:none"></div>
 
 <script>
-/**************************************************************************
- LocalStorage-backed SPA, seeded script data in-code.
- Each script object contains: title (string), tags (array), code (string, loadstring allowed),
- is_verified (boolean).
- No id field stored — scripts are referenced by index.
-**************************************************************************/
-
+/* LocalStorage-backed SPA, seeded script data, moderator UI hidden when not signed in.
+   Add and Dashboard links/pages only available in moderator mode.
+*/
 const STORAGE_KEY = 'wicpz_scripts';
 const MODERATOR_KEY = 'WICP-Moderator-7f9X2bLq';
 
-// initial seed (edit here to change seeded scripts)
 const INITIAL_SCRIPTS = [
   { title:"Infinite Yield", tags:["admin","utility"], code:`loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()`, is_verified:true },
   { title:"Simple ESP", tags:["esp","vision"], code:`for i,v in pairs(game.Players:GetPlayers()) do print(v.Name) end`, is_verified:false },
@@ -134,21 +130,26 @@ const INITIAL_SCRIPTS = [
   { title:"Example", tags:["Example"], code:"Example", is_verified:true }
 ];
 
-// app state & roots
 let scripts = [];
-let adminKey = localStorage.getItem('wicpz_admin_key') || localStorage.getItem('wicp_admin_key') || localStorage.getItem('wicpz_admin') || localStorage.getItem('wicp_admin') || localStorage.getItem('wicpz_admin_key') || localStorage.getItem('wicp_admin_key') || localStorage.getItem('wicp_admin') || localStorage.getItem('wicpz_admin_value') || localStorage.getItem('wicp_admin_value') || localStorage.getItem('wicp_admin_key') || localStorage.getItem('wicp_admin_key') || localStorage.getItem('wicpz_admin_key') || localStorage.getItem('wicp_admin_key') || null;
-if (!adminKey) adminKey = localStorage.getItem('wicp_admin_key') || null;
+let adminKey = localStorage.getItem('wicp_admin_key') || null;
 const root = document.getElementById('appRoot');
 const toastEl = document.getElementById('toast');
 const modalContainer = document.getElementById('modalContainer');
+const navAdd = document.getElementById('navAdd');
+const navDash = document.getElementById('navDash');
 const navLinks = document.querySelectorAll('.nav-link');
 const adminBtn = document.getElementById('adminBtn');
 const adminStatus = document.getElementById('adminStatus');
 
 function showToast(msg='Done'){ toastEl.textContent = msg; toastEl.classList.add('show'); clearTimeout(toastEl._t); toastEl._t = setTimeout(()=> toastEl.classList.remove('show'), 2000); }
 function isAdmin(){ return !!adminKey; }
-function setAdmin(key){ adminKey = key; if (key) localStorage.setItem('wicp_admin_key', key); else localStorage.removeItem('wicp_admin_key'); updateAdminUI(); }
+function setAdmin(key){ adminKey = key; if (key) localStorage.setItem('wicp_admin_key', key); else localStorage.removeItem('wicp_admin_key'); updateAdminUI(); updateNavVisibility(); }
 function updateAdminUI(){ adminStatus.textContent = isAdmin() ? 'Signed in' : 'Not signed in'; }
+function updateNavVisibility(){
+  // Show Add and Dashboard links only when moderator
+  if (isAdmin()){ navAdd.style.display = ''; navDash.style.display = ''; }
+  else { navAdd.style.display = 'none'; navDash.style.display = 'none'; }
+}
 
 function normalizeScript(p){
   return {
@@ -178,17 +179,10 @@ function loadScriptsFromDb(){
   router();
 }
 
-function saveScriptsToStorage(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(scripts));
-}
+function saveScriptsToStorage(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(scripts)); }
 
 async function addScriptToDb(script){
-  const item = {
-    title: script.title,
-    tags: script.tags || [],
-    code: script.code,
-    is_verified: !!script.isVerified
-  };
+  const item = { title: script.title, tags: script.tags || [], code: script.code, is_verified: !!script.isVerified };
   scripts.push(item);
   saveScriptsToStorage();
   return item;
@@ -213,19 +207,22 @@ async function deleteScriptInDb(index){
   saveScriptsToStorage();
 }
 
-function subscribeRealtime(){ /* noop for localStorage */ }
-
+function subscribeRealtime(){ /* no-op */ }
 function escapeHtml(s){ return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function escapeAttr(s){ return escapeHtml(s); }
 function iconVerified(){ return `<svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:middle;color:#9ff4bd"><path d="M20 6L9 17l-5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`; }
 function iconUnverified(){ return `<svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:middle;color:#ffd88c"><path d="M18 6L6 18M6 6l12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`; }
 
 window.addEventListener('hashchange', router);
-
 function setActiveNav(route){ navLinks.forEach(a=>a.classList.toggle('active', a.getAttribute('data-route')===route)); }
 
 function router(){
   const hash = location.hash.replace(/^#/, '') || '/';
+  // block access to /add and /dashboard if not admin
+  if ((hash === '/add' || hash.startsWith('/dashboard')) && !isAdmin()){
+    location.hash = '#/';
+    return;
+  }
   if (hash === '/' || hash.startsWith('/?')) { renderHome(); setActiveNav('/'); }
   else if (hash.startsWith('/dashboard')) { renderDashboard(); setActiveNav('/dashboard'); }
   else if (hash.startsWith('/script/')) { const idx = Number(hash.split('/')[2]); renderScriptDetail(idx); setActiveNav('/'); }
@@ -258,6 +255,7 @@ function renderHome(){
   document.getElementById('homeSearch').addEventListener('input', e => renderGrid(e.target.value));
   renderGrid('');
   updateAdminUI();
+  updateNavVisibility();
 }
 
 function renderGrid(filter=''){
@@ -327,17 +325,7 @@ function renderGrid(filter=''){
 }
 
 function renderDashboard(){
-  if (!isAdmin()){
-    root.innerHTML = `<div style="padding:3rem 0;text-align:center;color:var(--muted);font-family:JetBrains Mono">
-      <p style="margin:0 0 1rem">Moderator dashboard (sign in required for edits)</p>
-      <button class="btn" id="promptSignIn">Sign in as Moderator</button>
-      <div style="margin-top:1rem" id="dashboardGrid"></div>
-    </div>`;
-    document.getElementById('promptSignIn').addEventListener('click', promptAdmin);
-    renderDashboardGrid();
-    return;
-  }
-
+  // dashboard route is blocked in router for non-admin, so here user is admin
   root.innerHTML = `
     <div style="padding:1rem 0 0 0">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
@@ -443,6 +431,7 @@ function renderScriptDetail(index){
 }
 
 function renderAddPage(){
+  // router blocks non-admin, so page only reachable when admin
   root.innerHTML = `
     <div style="max-width:900px;margin:1rem auto">
       <div class="card">
@@ -515,22 +504,22 @@ function closeModal(){ modalContainer.style.display='none'; modalContainer.inner
 function promptAdmin(){
   const key = prompt('Enter moderator key:');
   if (!key) return;
-  if (key === MODERATOR_KEY){ setAdmin(key); showToast('Moderator signed in'); } else { showToast('Invalid key'); }
+  if (key === MODERATOR_KEY){ setAdmin(key); showToast('Moderator signed in'); updateNavVisibility(); } else { showToast('Invalid key'); }
 }
 
 adminBtn.addEventListener('click', ()=> {
-  if (isAdmin()){ if (confirm('Sign out moderator?')) { setAdmin(null); showToast('Signed out'); } }
+  if (isAdmin()){ if (confirm('Sign out moderator?')) { setAdmin(null); showToast('Signed out'); updateNavVisibility(); } }
   else promptAdmin();
 });
 
 document.querySelectorAll('.nav-link').forEach(a => a.addEventListener('click', ()=> setTimeout(()=> setActiveNav(a.getAttribute('data-route')), 1)));
 
-(function init(){ loadScriptsFromDb(); subscribeRealtime(); updateAdminUI(); router(); })();
+(function init(){ loadScriptsFromDb(); subscribeRealtime(); updateAdminUI(); updateNavVisibility(); router(); })();
 
 window._wicpz = {
   getScripts: () => scripts,
-  signIn: (k) => { setAdmin(k); },
-  signOut: () => setAdmin(null),
+  signIn: (k) => { setAdmin(k); updateNavVisibility(); },
+  signOut: () => { setAdmin(null); updateNavVisibility(); },
   clearAll: () => { scripts = []; saveScriptsToStorage(); loadScriptsFromDb(); }
 };
 </script>
