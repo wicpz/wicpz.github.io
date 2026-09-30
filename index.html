@@ -39,19 +39,18 @@
   .name-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 15px; }
   .name-badge { padding: 5px 10px; border-radius: 5px; font-family: 'Courier New', monospace; font-weight: 600; font-size: 0.9rem; cursor: pointer; border: 1px solid; }
   .name-badge.locked { background: #3a2e1a; color: #d29922; border-color: #d29922; }
-  .name-badge.taken { background: #3a1a1a; color: #f85149; border-color: #f85149; }
   .name-badge:hover { transform: scale(1.05); }
 </style>
 </head>
 <body>
 <div class="container">
   <h1>🎯 3-Letter OG Name Sniper</h1>
-  <p class="subtitle">Checks all 17,576 3-letter names via Mojang's API through a CORS proxy</p>
+  <p class="subtitle">Checks all 17,576 3-letter names via Mojang's API</p>
 
   <div class="note">
-    <strong>✅ CORS proxy enabled:</strong> Requests are routed through <code>corsproxy.io</code> so Mojang's API doesn't block your browser. 
+    <strong>✅ Fixed:</strong> Using allorigins.win proxy with slow speed to avoid 403 blocks. 
     <strong>HTTP 200</strong> = Taken. <strong>HTTP 204</strong> = Available or Locked. 
-    Verify on <a href="https://namemc.com" target="_blank" style="color:#58a6ff;">NameMC</a> to confirm.
+    Verify on <a href="https://namemc.com" target="_blank" style="color:#58a6ff;">NameMC</a>.
   </div>
 
   <div class="controls">
@@ -80,11 +79,11 @@
 
 <script>
 // ============================================================
-// CONFIG
+// CONFIG — FIXED FOR 403
 // ============================================================
-const CONCURRENT = 5;            // names checked at once
-const DELAY_BETWEEN = 100;       // ms between batches
-const PROXY = "https://corsproxy.io/?";   // CORS proxy
+const CONCURRENT = 1;            // One at a time to avoid rate limits
+const DELAY_BETWEEN = 1500;       // 1.5 seconds between each name
+const PROXY = "https://api.allorigins.win/raw?url=";
 const MOJANG = "https://api.mojang.com/users/profiles/minecraft/";
 
 // ============================================================
@@ -111,7 +110,7 @@ function generateAllNames() {
 }
 
 // ============================================================
-// CHECK NAME (VIA CORS PROXY)
+// CHECK NAME (VIA ALLORIGINS PROXY)
 // ============================================================
 async function checkName(username) {
   const target = MOJANG + username;
@@ -123,9 +122,11 @@ async function checkName(username) {
     if (response.status === 200) {
       return { status: 'taken', name: username };
     } else if (response.status === 204) {
-      return { status: 'locked', name: username }; // Available OR Locked
+      return { status: 'locked', name: username };
     } else if (response.status === 400) {
       return { status: 'error', name: username, message: 'Invalid' };
+    } else if (response.status === 403) {
+      return { status: 'error', name: username, message: '403 - proxy blocked' };
     } else if (response.status === 429) {
       return { status: 'error', name: username, message: 'Rate limited' };
     } else {
@@ -165,9 +166,7 @@ function updateProgress(checked, total) {
 function renderNameList() {
   const listEl = document.getElementById('nameList');
   listEl.innerHTML = '';
-  // Show up to 300 available/locked names as badges
-  const show = lockedNames.slice(0, 300);
-  show.forEach(name => {
+  lockedNames.slice(0, 300).forEach(name => {
     const badge = document.createElement('span');
     badge.className = 'name-badge locked';
     badge.textContent = name;
@@ -198,7 +197,7 @@ async function startSnipe() {
   const total = allNames.length;
 
   log(`Starting snipe of ${total} names...`, 'info');
-  log(`Using proxy: ${PROXY}`, 'info');
+  log(`Speed: 1 name every ${DELAY_BETWEEN}ms`, 'info');
   log('---', 'info');
 
   for (let i = 0; i < allNames.length; i += CONCURRENT) {
@@ -217,13 +216,14 @@ async function startSnipe() {
         log(`🔒 AVAILABLE/LOCKED: ${r.name}`, 'locked');
       } else {
         errorCount++;
-        if (errorCount <= 5) log(`! ERROR: ${r.name} - ${r.message}`, 'error');
+        if (errorCount <= 10) log(`! ERROR: ${r.name} - ${r.message}`, 'error');
+        if (errorCount === 10) log('(Suppressing more errors...)', 'error');
       }
     });
 
     updateStats();
     updateProgress(totalChecked, total);
-    if (lockedNames.length > 0 && totalChecked % 50 === 0) renderNameList();
+    if (lockedNames.length > 0 && totalChecked % 10 === 0) renderNameList();
 
     if (i + CONCURRENT < allNames.length) {
       await new Promise(r => setTimeout(r, DELAY_BETWEEN));
@@ -272,7 +272,8 @@ function downloadResults() {
   log('💾 Results downloaded.', 'info');
 }
 
-log('Sniper loaded with CORS proxy.', 'info');
+log('Sniper loaded with allorigins proxy.', 'info');
+log('Speed set to 1.5s per name to avoid 403.', 'info');
 log('Click "Start Snipe" to begin.', 'info');
 </script>
 </body>
