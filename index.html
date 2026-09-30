@@ -1,507 +1,279 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minecraft 3-Letter OG Name Sniper</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        body {
-            background: #0d1117;
-            color: #c9d1d9;
-            padding: 20px;
-            min-height: 100vh;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        h1 {
-            color: #58a6ff;
-            text-align: center;
-            margin-bottom: 10px;
-            font-size: 2rem;
-        }
-        .subtitle {
-            text-align: center;
-            color: #8b949e;
-            margin-bottom: 30px;
-            font-size: 0.95rem;
-        }
-        .controls {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: center;
-            margin-bottom: 20px;
-        }
-        button {
-            background: #238636;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 600;
-            transition: background 0.2s;
-        }
-        button:hover {
-            background: #2ea043;
-        }
-        button:disabled {
-            background: #484f58;
-            cursor: not-allowed;
-        }
-        button.stop {
-            background: #da3633;
-        }
-        button.stop:hover {
-            background: #f85149;
-        }
-        .stats {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-        }
-        .stat {
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 8px;
-            padding: 15px 25px;
-            text-align: center;
-            min-width: 120px;
-        }
-        .stat .number {
-            font-size: 1.8rem;
-            font-weight: 700;
-        }
-        .stat .label {
-            font-size: 0.8rem;
-            color: #8b949e;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .stat.available .number { color: #3fb950; }
-        .stat.taken .number { color: #f85149; }
-        .stat.locked .number { color: #d29922; }
-        .stat.total .number { color: #58a6ff; }
-        .progress-bar {
-            width: 100%;
-            height: 20px;
-            background: #161b22;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 20px;
-            border: 1px solid #30363d;
-        }
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #238636, #3fb950);
-            width: 0%;
-            transition: width 0.3s;
-        }
-        .log {
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 8px;
-            padding: 15px;
-            max-height: 400px;
-            overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 0.85rem;
-            line-height: 1.6;
-        }
-        .log-entry {
-            padding: 2px 0;
-        }
-        .log-entry.available { color: #3fb950; }
-        .log-entry.taken { color: #f85149; }
-        .log-entry.locked { color: #d29922; }
-        .log-entry.info { color: #58a6ff; }
-        .log-entry.error { color: #8b949e; }
-        .results {
-            margin-top: 20px;
-        }
-        .results h2 {
-            color: #58a6ff;
-            margin-bottom: 10px;
-            font-size: 1.2rem;
-        }
-        .name-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .name-badge {
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-family: 'Courier New', monospace;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: transform 0.1s;
-        }
-        .name-badge:hover {
-            transform: scale(1.05);
-        }
-        .name-badge.available {
-            background: #1a3a1a;
-            color: #3fb950;
-            border: 1px solid #3fb950;
-        }
-        .name-badge.taken {
-            background: #3a1a1a;
-            color: #f85149;
-            border: 1px solid #f85149;
-        }
-        .name-badge.locked {
-            background: #3a2e1a;
-            color: #d29922;
-            border: 1px solid #d29922;
-        }
-        .filter-buttons {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-        .filter-buttons button {
-            padding: 8px 16px;
-            font-size: 0.85rem;
-        }
-        .filter-buttons button.active {
-            background: #58a6ff;
-            color: #0d1117;
-        }
-        .note {
-            background: #161b22;
-            border-left: 4px solid #d29922;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 0 8px 8px 0;
-            font-size: 0.9rem;
-            line-height: 1.6;
-        }
-        .note strong {
-            color: #d29922;
-        }
-        a {
-            color: #58a6ff;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3-Letter OG Name Sniper</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+  body { background: #0d1117; color: #c9d1d9; padding: 20px; min-height: 100vh; }
+  .container { max-width: 900px; margin: 0 auto; }
+  h1 { color: #58a6ff; text-align: center; margin-bottom: 8px; font-size: 1.5rem; }
+  .subtitle { text-align: center; color: #8b949e; margin-bottom: 20px; font-size: 0.85rem; }
+  .note { background: #161b22; border-left: 4px solid #3fb950; padding: 12px 15px; margin-bottom: 20px; border-radius: 0 8px 8px 0; font-size: 0.85rem; line-height: 1.5; }
+  .note strong { color: #3fb950; }
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
+  button { background: #238636; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-size: 0.95rem; font-weight: 600; }
+  button:hover { background: #2ea043; }
+  button:disabled { background: #484f58; cursor: not-allowed; }
+  button.stop { background: #da3633; }
+  button.stop:hover { background: #f85149; }
+  button.secondary { background: #21262d; border: 1px solid #30363d; }
+  button.secondary:hover { background: #30363d; }
+  .stats { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px; }
+  .stat { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px 20px; text-align: center; min-width: 100px; }
+  .stat .number { font-size: 1.5rem; font-weight: 700; }
+  .stat .label { font-size: 0.7rem; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; }
+  .stat.available .number { color: #3fb950; }
+  .stat.taken .number { color: #f85149; }
+  .stat.locked .number { color: #d29922; }
+  .stat.total .number { color: #58a6ff; }
+  .progress-bar { width: 100%; height: 16px; background: #161b22; border-radius: 8px; overflow: hidden; margin-bottom: 20px; border: 1px solid #30363d; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #238636, #3fb950); width: 0%; transition: width 0.3s; }
+  .log { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 15px; max-height: 350px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.8rem; line-height: 1.5; }
+  .log-entry.available { color: #3fb950; }
+  .log-entry.taken { color: #f85149; }
+  .log-entry.locked { color: #d29922; }
+  .log-entry.info { color: #58a6ff; }
+  .log-entry.error { color: #8b949e; }
+  .name-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 15px; }
+  .name-badge { padding: 5px 10px; border-radius: 5px; font-family: 'Courier New', monospace; font-weight: 600; font-size: 0.9rem; cursor: pointer; border: 1px solid; }
+  .name-badge.locked { background: #3a2e1a; color: #d29922; border-color: #d29922; }
+  .name-badge.taken { background: #3a1a1a; color: #f85149; border-color: #f85149; }
+  .name-badge:hover { transform: scale(1.05); }
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>🎯 Minecraft 3-Letter OG Name Sniper</h1>
-        <p class="subtitle">Checks all 17,576 possible 3-letter names (a-z) via Mojang's public API — no login required</p>
+<div class="container">
+  <h1>🎯 3-Letter OG Name Sniper</h1>
+  <p class="subtitle">Checks all 17,576 3-letter names via Mojang's API through a CORS proxy</p>
 
-        <div class="note">
-            <strong>⚠️ How it works:</strong> This tool checks Mojang's public API for each 3-letter combination. 
-            <strong>HTTP 200</strong> = Taken. <strong>HTTP 204</strong> = Available or Locked. 
-            The API <strong>cannot distinguish</strong> between "available" and "locked" — both return 204. 
-            To confirm if a name is truly claimable, check it on <a href="https://namemc.com" target="_blank">NameMC</a>.
-        </div>
+  <div class="note">
+    <strong>✅ CORS proxy enabled:</strong> Requests are routed through <code>corsproxy.io</code> so Mojang's API doesn't block your browser. 
+    <strong>HTTP 200</strong> = Taken. <strong>HTTP 204</strong> = Available or Locked. 
+    Verify on <a href="https://namemc.com" target="_blank" style="color:#58a6ff;">NameMC</a> to confirm.
+  </div>
 
-        <div class="controls">
-            <button id="startBtn" onclick="startSnipe()">🚀 Start Snipe</button>
-            <button id="stopBtn" class="stop" onclick="stopSnipe()" disabled>🛑 Stop</button>
-        </div>
+  <div class="controls">
+    <button id="startBtn" onclick="startSnipe()">🚀 Start Snipe</button>
+    <button id="stopBtn" class="stop" onclick="stopSnipe()" disabled>🛑 Stop</button>
+    <button class="secondary" onclick="downloadResults()">💾 Download Results</button>
+  </div>
 
-        <div class="progress-bar">
-            <div class="progress-fill" id="progressFill"></div>
-        </div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
 
-        <div class="stats">
-            <div class="stat total">
-                <div class="number" id="totalCount">0</div>
-                <div class="label">Total Checked</div>
-            </div>
-            <div class="stat available">
-                <div class="number" id="availableCount">0</div>
-                <div class="label">Available</div>
-            </div>
-            <div class="stat taken">
-                <div class="number" id="takenCount">0</div>
-                <div class="label">Taken</div>
-            </div>
-            <div class="stat locked">
-                <div class="number" id="lockedCount">0</div>
-                <div class="label">Locked*</div>
-            </div>
-        </div>
+  <div class="stats">
+    <div class="stat total"><div class="number" id="totalCount">0</div><div class="label">Checked</div></div>
+    <div class="stat available"><div class="number" id="availableCount">0</div><div class="label">Available</div></div>
+    <div class="stat taken"><div class="number" id="takenCount">0</div><div class="label">Taken</div></div>
+    <div class="stat locked"><div class="number" id="lockedCount">0</div><div class="label">Locked*</div></div>
+  </div>
 
-        <div class="log" id="log">
-            <div class="log-entry info">Ready to snipe. Click "Start Snipe" to begin...</div>
-        </div>
+  <div class="log" id="log">
+    <div class="log-entry info">Ready. Click "Start Snipe" to begin...</div>
+  </div>
 
-        <div class="results">
-            <h2>📋 Results</h2>
-            <div class="filter-buttons">
-                <button class="active" onclick="filterResults('all')">All</button>
-                <button onclick="filterResults('available')">Available</button>
-                <button onclick="filterResults('taken')">Taken</button>
-                <button onclick="filterResults('locked')">Locked*</button>
-            </div>
-            <div class="name-list" id="nameList">
-                <p style="color: #8b949e;">No results yet...</p>
-            </div>
-        </div>
-    </div>
+  <div class="name-list" id="nameList"></div>
+</div>
 
-    <script>
-        // ============================================================
-        // CONFIGURATION
-        // ============================================================
-        const CONCURRENT_REQUESTS = 10;  // How many names to check at once
-        const DELAY_BETWEEN_BATCHES = 50; // ms delay between batches to avoid rate limits
-        const MOJANG_API = "https://api.mojang.com/users/profiles/minecraft/";
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const CONCURRENT = 5;            // names checked at once
+const DELAY_BETWEEN = 100;       // ms between batches
+const PROXY = "https://corsproxy.io/?";   // CORS proxy
+const MOJANG = "https://api.mojang.com/users/profiles/minecraft/";
 
-        // ============================================================
-        // STATE
-        // ============================================================
-        let isRunning = false;
-        let totalChecked = 0;
-        let availableNames = [];
-        let takenNames = [];
-        let lockedNames = [];  // We'll treat 204 as "locked" since API can't distinguish
-        let allResults = [];
-        let currentFilter = 'all';
+// ============================================================
+// STATE
+// ============================================================
+let isRunning = false;
+let totalChecked = 0;
+let availableNames = [];
+let takenNames = [];
+let lockedNames = [];
+let errorCount = 0;
 
-        // ============================================================
-        // NAME GENERATION
-        // ============================================================
-        function generateAllNames() {
-            const names = [];
-            const letters = 'abcdefghijklmnopqrstuvwxyz';
-            for (let i = 0; i < 26; i++) {
-                for (let j = 0; j < 26; j++) {
-                    for (let k = 0; k < 26; k++) {
-                        names.push(letters[i] + letters[j] + letters[k]);
-                    }
-                }
-            }
-            return names;  // 17,576 names
-        }
+// ============================================================
+// GENERATE ALL 3-LETTER NAMES
+// ============================================================
+function generateAllNames() {
+  const names = [];
+  const letters = 'abcdefghijklmnopqrstuvwxyz';
+  for (let i = 0; i < 26; i++)
+    for (let j = 0; j < 26; j++)
+      for (let k = 0; k < 26; k++)
+        names.push(letters[i] + letters[j] + letters[k]);
+  return names;
+}
 
-        // ============================================================
-        // API CHECK
-        // ============================================================
-        async function checkName(username) {
-            try {
-                const response = await fetch(MOJANG_API + username, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
+// ============================================================
+// CHECK NAME (VIA CORS PROXY)
+// ============================================================
+async function checkName(username) {
+  const target = MOJANG + username;
+  const url = PROXY + encodeURIComponent(target);
 
-                if (response.status === 200) {
-                    const data = await response.json();
-                    return { status: 'taken', name: username, uuid: data.id };
-                } else if (response.status === 204) {
-                    // 204 = No Content = Available OR Locked
-                    // We'll mark as "locked" since most 204s on 3-letter names are locked
-                    return { status: 'locked', name: username };
-                } else if (response.status === 400) {
-                    return { status: 'error', name: username, message: 'Invalid name' };
-                } else {
-                    return { status: 'error', name: username, message: 'HTTP ' + response.status };
-                }
-            } catch (error) {
-                return { status: 'error', name: username, message: error.message };
-            }
-        }
+  try {
+    const response = await fetch(url, { method: 'GET' });
 
-        // ============================================================
-        // LOGGING
-        // ============================================================
-        function log(message, type = 'info') {
-            const logEl = document.getElementById('log');
-            const entry = document.createElement('div');
-            entry.className = 'log-entry ' + type;
-            entry.textContent = message;
-            logEl.appendChild(entry);
-            logEl.scrollTop = logEl.scrollHeight;
-        }
+    if (response.status === 200) {
+      return { status: 'taken', name: username };
+    } else if (response.status === 204) {
+      return { status: 'locked', name: username }; // Available OR Locked
+    } else if (response.status === 400) {
+      return { status: 'error', name: username, message: 'Invalid' };
+    } else if (response.status === 429) {
+      return { status: 'error', name: username, message: 'Rate limited' };
+    } else {
+      return { status: 'error', name: username, message: 'HTTP ' + response.status };
+    }
+  } catch (err) {
+    return { status: 'error', name: username, message: err.message };
+  }
+}
 
-        // ============================================================
-        // UI UPDATES
-        // ============================================================
-        function updateStats() {
-            document.getElementById('totalCount').textContent = totalChecked;
-            document.getElementById('availableCount').textContent = availableNames.length;
-            document.getElementById('takenCount').textContent = takenNames.length;
-            document.getElementById('lockedCount').textContent = lockedNames.length;
-        }
+// ============================================================
+// LOGGING
+// ============================================================
+function log(msg, type = 'info') {
+  const logEl = document.getElementById('log');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry ' + type;
+  entry.textContent = msg;
+  logEl.appendChild(entry);
+  logEl.scrollTop = logEl.scrollHeight;
+}
 
-        function updateProgress(checked, total) {
-            const percent = (checked / total) * 100;
-            document.getElementById('progressFill').style.width = percent + '%';
-        }
+// ============================================================
+// UI UPDATE
+// ============================================================
+function updateStats() {
+  document.getElementById('totalCount').textContent = totalChecked;
+  document.getElementById('availableCount').textContent = availableNames.length;
+  document.getElementById('takenCount').textContent = takenNames.length;
+  document.getElementById('lockedCount').textContent = lockedNames.length;
+}
 
-        function renderResults() {
-            const listEl = document.getElementById('nameList');
-            listEl.innerHTML = '';
+function updateProgress(checked, total) {
+  document.getElementById('progressFill').style.width = ((checked / total) * 100) + '%';
+}
 
-            let namesToShow = [];
-            if (currentFilter === 'all') {
-                namesToShow = allResults;
-            } else if (currentFilter === 'available') {
-                namesToShow = availableNames;
-            } else if (currentFilter === 'taken') {
-                namesToShow = takenNames;
-            } else if (currentFilter === 'locked') {
-                namesToShow = lockedNames;
-            }
+function renderNameList() {
+  const listEl = document.getElementById('nameList');
+  listEl.innerHTML = '';
+  // Show up to 300 available/locked names as badges
+  const show = lockedNames.slice(0, 300);
+  show.forEach(name => {
+    const badge = document.createElement('span');
+    badge.className = 'name-badge locked';
+    badge.textContent = name;
+    badge.title = 'Click to verify on NameMC';
+    badge.onclick = () => window.open('https://namemc.com/search?q=' + name, '_blank');
+    listEl.appendChild(badge);
+  });
+}
 
-            if (namesToShow.length === 0) {
-                listEl.innerHTML = '<p style="color: #8b949e;">No results to show...</p>';
-                return;
-            }
+// ============================================================
+// MAIN SNIPE
+// ============================================================
+async function startSnipe() {
+  if (isRunning) return;
+  isRunning = true;
 
-            namesToShow.forEach(name => {
-                const badge = document.createElement('span');
-                badge.className = 'name-badge ' + (name.status || 'locked');
-                badge.textContent = name.name || name;
-                badge.title = 'Click to check on NameMC';
-                badge.onclick = () => {
-                    window.open('https://namemc.com/search?q=' + (name.name || name), '_blank');
-                };
-                listEl.appendChild(badge);
-            });
-        }
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('stopBtn').disabled = false;
+  document.getElementById('log').innerHTML = '';
+  document.getElementById('nameList').innerHTML = '';
+  totalChecked = 0;
+  availableNames = [];
+  takenNames = [];
+  lockedNames = [];
+  errorCount = 0;
 
-        function filterResults(filter) {
-            currentFilter = filter;
-            document.querySelectorAll('.filter-buttons button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-            renderResults();
-        }
+  const allNames = generateAllNames();
+  const total = allNames.length;
 
-        // ============================================================
-        // MAIN SNIPE LOGIC
-        // ============================================================
-        async function startSnipe() {
-            if (isRunning) return;
-            isRunning = true;
+  log(`Starting snipe of ${total} names...`, 'info');
+  log(`Using proxy: ${PROXY}`, 'info');
+  log('---', 'info');
 
-            document.getElementById('startBtn').disabled = true;
-            document.getElementById('stopBtn').disabled = false;
-            document.getElementById('log').innerHTML = '';
-            document.getElementById('nameList').innerHTML = '<p style="color: #8b949e;">Checking names...</p>';
+  for (let i = 0; i < allNames.length; i += CONCURRENT) {
+    if (!isRunning) break;
 
-            totalChecked = 0;
-            availableNames = [];
-            takenNames = [];
-            lockedNames = [];
-            allResults = [];
+    const batch = allNames.slice(i, i + CONCURRENT);
+    const results = await Promise.all(batch.map(n => checkName(n)));
 
-            const allNames = generateAllNames();
-            const totalNames = allNames.length;
+    results.forEach(r => {
+      totalChecked++;
+      if (r.status === 'taken') {
+        takenNames.push(r.name);
+        log(`✗ TAKEN: ${r.name}`, 'taken');
+      } else if (r.status === 'locked') {
+        lockedNames.push(r.name);
+        log(`🔒 AVAILABLE/LOCKED: ${r.name}`, 'locked');
+      } else {
+        errorCount++;
+        if (errorCount <= 5) log(`! ERROR: ${r.name} - ${r.message}`, 'error');
+      }
+    });
 
-            log(`Starting snipe of ${totalNames} names...`, 'info');
-            log(`Concurrent requests: ${CONCURRENT_REQUESTS}`, 'info');
-            log('---', 'info');
+    updateStats();
+    updateProgress(totalChecked, total);
+    if (lockedNames.length > 0 && totalChecked % 50 === 0) renderNameList();
 
-            // Process in batches
-            for (let i = 0; i < allNames.length; i += CONCURRENT_REQUESTS) {
-                if (!isRunning) break;
+    if (i + CONCURRENT < allNames.length) {
+      await new Promise(r => setTimeout(r, DELAY_BETWEEN));
+    }
+  }
 
-                const batch = allNames.slice(i, i + CONCURRENT_REQUESTS);
-                const promises = batch.map(name => checkName(name));
-                const results = await Promise.all(promises);
+  log('---', 'info');
+  log(`DONE! Checked ${totalChecked} names.`, 'info');
+  log(`✓ Available/Locked: ${lockedNames.length}`, 'locked');
+  log(`✗ Taken: ${takenNames.length}`, 'taken');
+  log(`! Errors: ${errorCount}`, 'error');
 
-                results.forEach(result => {
-                    totalChecked++;
-                    allResults.push(result);
+  isRunning = false;
+  document.getElementById('startBtn').disabled = false;
+  document.getElementById('stopBtn').disabled = true;
+  renderNameList();
+}
 
-                    if (result.status === 'taken') {
-                        takenNames.push(result);
-                        log(`✗ TAKEN: ${result.name}`, 'taken');
-                    } else if (result.status === 'locked') {
-                        lockedNames.push(result);
-                        log(`🔒 LOCKED/AVAILABLE: ${result.name}`, 'locked');
-                    } else if (result.status === 'available') {
-                        availableNames.push(result);
-                        log(`✓ AVAILABLE: ${result.name}`, 'available');
-                    } else {
-                        log(`! ERROR: ${result.name} - ${result.message}`, 'error');
-                    }
-                });
+function stopSnipe() {
+  isRunning = false;
+  log('Stopped by user.', 'error');
+  document.getElementById('startBtn').disabled = false;
+  document.getElementById('stopBtn').disabled = true;
+}
 
-                updateStats();
-                updateProgress(totalChecked, totalNames);
-                renderResults();
+// ============================================================
+// DOWNLOAD RESULTS
+// ============================================================
+function downloadResults() {
+  if (lockedNames.length === 0 && takenNames.length === 0) {
+    log('No results to download yet.', 'error');
+    return;
+  }
+  let content = '=== AVAILABLE/LOCKED 3-LETTER NAMES ===\n';
+  lockedNames.forEach(n => content += n + '\n');
+  content += '\n=== TAKEN 3-LETTER NAMES ===\n';
+  takenNames.forEach(n => content += n + '\n');
 
-                // Small delay to avoid rate limits
-                if (i + CONCURRENT_REQUESTS < allNames.length) {
-                    await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES));
-                }
-            }
+  const blob = new Blob([content], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '3letter_results.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+  log('💾 Results downloaded.', 'info');
+}
 
-            log('---', 'info');
-            log(`Snipe complete! Checked ${totalChecked} names.`, 'info');
-            log(`✓ Available: ${availableNames.length}`, 'available');
-            log(`✗ Taken: ${takenNames.length}`, 'taken');
-            log(`🔒 Locked: ${lockedNames.length}`, 'locked');
-
-            isRunning = false;
-            document.getElementById('startBtn').disabled = false;
-            document.getElementById('stopBtn').disabled = true;
-
-            // Auto-save results
-            saveResults();
-        }
-
-        function stopSnipe() {
-            isRunning = false;
-            log('Snipe stopped by user.', 'error');
-            document.getElementById('startBtn').disabled = false;
-            document.getElementById('stopBtn').disabled = true;
-        }
-
-        // ============================================================
-        // SAVE RESULTS
-        // ============================================================
-        function saveResults() {
-            // Save locked/available names to a downloadable file
-            const lockedContent = lockedNames.map(n => n.name).join('\n');
-            const takenContent = takenNames.map(n => n.name).join('\n');
-
-            if (lockedNames.length > 0) {
-                downloadFile('locked_3letter.txt', lockedContent);
-            }
-            if (takenNames.length > 0) {
-                downloadFile('taken_3letter.txt', takenContent);
-            }
-        }
-
-        function downloadFile(filename, content) {
-            const blob = new Blob([content], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        // ============================================================
-        // INIT
-        // ============================================================
-        log('Minecraft 3-Letter OG Name Sniper loaded.', 'info');
-        log('Ready to check 17,576 names.', 'info');
-        log('Click "Start Snipe" to begin.', 'info');
-    </script>
+log('Sniper loaded with CORS proxy.', 'info');
+log('Click "Start Snipe" to begin.', 'info');
+</script>
 </body>
 </html>
